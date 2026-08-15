@@ -5,14 +5,17 @@ import pandas as pd
 
 def main():
     window_start=(2026, 5, 1, 0, 0, 0)
-    window_end = (2026, 5, 7, 0, 0, 0)
+    window_end = (2026, 5, 1, 1, 0, 0)
     
     db = PostgresDB()
-    dp = MassiveDataProvider('MNQ', '1min', start=window_start, end=window_end, limit=10000)
+    dp = MassiveDataProvider('MNQ', '1min', start=window_start, end=window_end)
     
     res = dp.get_futures_bars()
+
     candles = db.prep_data_for_insert(res)
-    db.bulk_insert_candles(candles)
+    
+    print(candles)
+    #db.bulk_insert_candles(candles)
     
     
 

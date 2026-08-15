@@ -5,6 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
+import dataclasses 
 
 
 
@@ -21,24 +22,17 @@ class PostgresDB:
         self.session = sessionmaker(bind=self.engine)
     
     def _clean_candle(self, candle: FuturesAgg) -> CandleItem:
-        win_start_seconds = candle.window_start / 1_000_000_000
-        dt_window = datetime.fromtimestamp(win_start_seconds, tz=timezone.utc)
-        dt_ses_end = datetime.strptime(candle.session_end_date, "%Y-%m-%d")
+        candle_data = dataclasses.asdict(candle)
         
-        return CandleItem(
-            window_start=dt_window,
-            timeframe=candle.timeframe,
-            ticker=candle.ticker,
-            transactions=candle.transactions,
-            close=candle.close,
-            high=candle.high,
-            low=candle.low,
-            open=candle.open,
-            session_end_date=dt_ses_end,
-            settlement_price=candle.settlement_price,
-            dollar_volume=candle.dollar_volume,
-            volume=candle.volume
-        )
+        win_start_seconds = candle.window_start / 1_000_000_000
+        candle_data['window_start'] = datetime.fromtimestamp(win_start_seconds, tz=timezone.utc)
+        candle_data['session_end_date'] = datetime.strptime(candle.session_end_date, "%Y-%m-%d")
+        
+        candle_data['contract_month'] = candle.ticker[-2]
+        candle_data['symbol'] = candle.ticker[:-2]
+        candle_data['contract_year'] = candle_data['session_end_date'].year
+        
+        return CandleItem(**candle_data)
         
         
     def bulk_insert_candles(self, candles: list[CandleItem]) -> None:
@@ -50,5 +44,5 @@ class PostgresDB:
             session.close()
             
             
-    def prep_data_for_insert(self, data: dict):
-        return [self._clean_candle(item) for item in data.values()]
+    def prep_data_for_insert(self, data: list):
+        return [self._clean_candle(item) for item in data]

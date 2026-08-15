@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from dataclasses import dataclass
 from typing import Optional
 from db.models import CandleItem
+
 @dataclass
 class FuturesAgg:
     ticker: str
@@ -26,7 +27,7 @@ class FuturesAgg:
 
 load_dotenv()
 class MassiveDataProvider():
-    def __init__(self, symbol, resolution, limit=20, start:tuple=None, end:tuple =None):
+    def __init__(self, symbol, resolution, limit=2, start:tuple=None, end:tuple =None):
         api_key = os.environ["MASSIVE_API"]
         self.client_con = RESTClient(api_key=api_key, pagination=False)
         
@@ -69,8 +70,8 @@ class MassiveDataProvider():
             window_start_lte=self.end,
             limit=self.limit
         )
-        bars = {
-            i: FuturesAgg(**dataclasses.asdict(item), timeframe=self.resolution)
-            for i, item in enumerate(res, start=1)
-        }
+        
+        bars = [FuturesAgg(**dataclasses.asdict(item), timeframe=self.resolution) for item in res]
+            
+        
         return bars
