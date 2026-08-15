@@ -1,27 +1,22 @@
+import os
+import dataclasses 
+from dotenv import load_dotenv
 from .models import CandleItem
-from datetime import datetime, timezone
-from data_agg.massive_data_provider import FuturesAgg
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-import os
-from dotenv import load_dotenv
-import dataclasses 
-
-
-
+from datetime import datetime, timezone
+from data_agg.massive_data_provider import FuturesAgg
 
 load_dotenv()
-
-
-
-
-
 class PostgresDB:
     def __init__(self):
         self.engine = create_engine(os.environ["DATABASE_URL"])
         self.session = sessionmaker(bind=self.engine)
     
-    def _clean_candle(self, candle: FuturesAgg) -> CandleItem:
+    def prep_data_for_insert(self, data: list):
+        return [self._clean_candle(item) for item in data]
+    
+    def future_agg_to_candle(self, candle: FuturesAgg) -> CandleItem:
         candle_data = dataclasses.asdict(candle)
         
         win_start_seconds = candle.window_start / 1_000_000_000
@@ -34,7 +29,6 @@ class PostgresDB:
         
         return CandleItem(**candle_data)
         
-        
     def bulk_insert_candles(self, candles: list[CandleItem]) -> None:
         session = self.session()
         try:
@@ -42,7 +36,4 @@ class PostgresDB:
             session.commit()
         finally:
             session.close()
-            
-            
-    def prep_data_for_insert(self, data: list):
-        return [self._clean_candle(item) for item in data]
+                    

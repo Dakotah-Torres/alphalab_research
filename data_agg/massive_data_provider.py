@@ -39,7 +39,6 @@ class MassiveDataProvider():
         self.end = self._date_tuple_to_datetime(end)
         self._set_contract_ticker()
         
-    
     def _date_tuple_to_datetime(self, date_tuple: tuple) -> datetime:
         year, month, day, hour, minute, second = date_tuple
         dt = datetime(year, month, day, hour, minute, second, tzinfo=timezone.utc)
@@ -61,7 +60,6 @@ class MassiveDataProvider():
         year_digit = str(year + 1)[-1]
         self.ticker = f"{self.symbol}H{year_digit}" 
     
-
     def get_futures_bars(self):
         res = self.client_con.list_futures_aggregates(
             ticker=self.ticker,
