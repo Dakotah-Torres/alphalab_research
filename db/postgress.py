@@ -1,11 +1,14 @@
 import os
 import dataclasses 
+import pandas as pd
 from dotenv import load_dotenv
 from .models import CandleItem
-from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime, timezone
+from sqlalchemy import create_engine, select
 from data_agg.massive_data_provider import FuturesAgg
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+
 
 load_dotenv()
 class PostgresDB:
