@@ -14,7 +14,6 @@ MONTH_CODE = {3: "H", 6: "M", 9: "U", 12: "Z"}
 
 TIMEFRAME_RE = re.compile(r"^(\d+)(min|hour|day)$")
 
-
 def timeframe_to_timedelta(timeframe: str) -> timedelta:
     """'1min' -> timedelta(minutes=1), '4hour' -> timedelta(hours=4), etc."""
     match = TIMEFRAME_RE.match(timeframe)
@@ -104,6 +103,12 @@ def find_missing_ranges(
 def _datetime_to_tuple(dt: datetime) -> tuple:
     return (dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
 
+def _ensure_utc(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
 
 class DataService:
     """
@@ -123,6 +128,9 @@ class DataService:
         self.max_allowed_gap_minutes = max_allowed_gap_minutes
 
     def get_candles(self, symbol: str, timeframe: str, start: datetime, end: datetime) -> pd.DataFrame:
+        start = _ensure_utc(start)
+        end = _ensure_utc(end)
+        
         expected_interval = timeframe_to_timedelta(timeframe)
         max_allowed_gap = max(expected_interval * 2, timedelta(minutes=self.max_allowed_gap_minutes))
 

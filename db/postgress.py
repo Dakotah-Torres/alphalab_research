@@ -49,27 +49,33 @@ class PostgresDB:
             session.close()
 
     def get_existing_timestamps(self, ticker: str, timeframe: str, start: datetime, end: datetime) -> list[datetime]:
+        naive_start = start.replace(tzinfo=None) if start.tzinfo else start
+        naive_end = end.replace(tzinfo=None) if end.tzinfo else end
+
         session = self.session()
         try:
             stmt = (
                 select(CandleItem.window_start)
                 .where(CandleItem.ticker == ticker)
                 .where(CandleItem.timeframe == timeframe)
-                .where(CandleItem.window_start >= start)
-                .where(CandleItem.window_start <= end)
+                .where(CandleItem.window_start >= naive_start)
+                .where(CandleItem.window_start <= naive_end)
                 .order_by(CandleItem.window_start)
             )
-            return [row[0] for row in session.execute(stmt).all()]
+            return [row[0].replace(tzinfo=timezone.utc) for row in session.execute(stmt).all()]
         finally:
             session.close()
 
     def get_candles_df(self, symbol: str, timeframe: str, start: datetime, end: datetime) -> pd.DataFrame:
+        naive_start = start.replace(tzinfo=None) if start.tzinfo else start
+        naive_end = end.replace(tzinfo=None) if end.tzinfo else end
+
         stmt = (
             select(CandleItem)
             .where(CandleItem.symbol == symbol)
             .where(CandleItem.timeframe == timeframe)
-            .where(CandleItem.window_start >= start)
-            .where(CandleItem.window_start <= end)
+            .where(CandleItem.window_start >= naive_start)
+            .where(CandleItem.window_start <= naive_end)
             .order_by(CandleItem.window_start)
         )
         return pd.read_sql(stmt, self.engine)
