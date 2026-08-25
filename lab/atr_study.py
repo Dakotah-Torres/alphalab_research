@@ -16,6 +16,7 @@ class AverageTrueRange:
         self.type = type
         self.true_range_group = []
         
+        self.rolling_true_range = []
         self.rolling_atr = []
 
         self.current_candle = None
@@ -27,7 +28,16 @@ class AverageTrueRange:
     def _period_check(self) -> bool:
         return len(self.true_range_group) == self.period
     
-    
+    def _reset_candles(self):
+        self.current_candle = None
+        self.previous_candle = None
+        self.current_row = 0
+        self.true_range_group = []
+        self.rolling_atr = []
+        self.rolling_true_range = []
+        self.wild_seed_trig = True
+        self.current_row = 0
+        
     def _true_rang(self) -> float:
         if self.previous_candle is None:
             return 0
@@ -57,7 +67,7 @@ class AverageTrueRange:
 
     def _atr(self):
         if not self._period_check():
-            return 0
+            return None
         
         atr = np.average(self.true_range_group)
         return atr
@@ -66,7 +76,7 @@ class AverageTrueRange:
         prev_atr = self.rolling_atr[-1]["atr"] if not self.wild_seed_trig else 0
         
         if not self._period_check():
-            return 0
+            return None
         
         if prev_atr == 0:
             self.wild_seed_trig = False
@@ -78,18 +88,30 @@ class AverageTrueRange:
     
         
     def get_rolling_atr(self):
+        self._reset_candles()
         for _ in range(len(self.candles)):
             timestamp = self.candles.iloc[self.current_row]['window_start']
+            self._update()
             match self.type:
                 case AtrType.SIMP | AtrType.ABS_SIMP:
-                    self.rolling_atr.append({"window_start": timestamp, "atr": np.round(self._atr(),2)})
-                    self._update()
-                    
+                    atr_val = self._atr()
+                    self.rolling_atr.append({"window_start": timestamp, "atr": np.round(atr_val, 2) if atr_val is not None else None})
+
                 case AtrType.WLDR | AtrType.ABS_WLDR:
-                    self.rolling_atr.append({"window_start": timestamp, "atr": np.round(self._wild_atr(),2)})
-                    self._update()
-                    
+                    atr_val = self._wild_atr()
+                    self.rolling_atr.append({"window_start": timestamp, "atr": np.round(atr_val, 2) if atr_val is not None else None})
                 case _:
                     raise ValueError(f"Unknown AtrType: {self.type}")
                 
         return pd.DataFrame(self.rolling_atr)
+    
+    def get_true_range(self):
+        self._reset_candles()
+        
+        for _ in range(len(self.candles)):
+            timestamp = self.candles.iloc[self.current_row]['window_start']
+            self._update()
+            self.rolling_true_range.append({'window_start': timestamp, 'tr': np.round(self._true_rang(),2)})
+                
+                
+        return pd.DataFrame(self.rolling_true_range)
